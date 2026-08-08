@@ -4,9 +4,9 @@
 
 A full-stack Retrieval-Augmented Generation system that lets you upload documents, build knowledge bases, and chat with your data using LLMs — with source citations, hybrid search, and real-time streaming.
 
-<!-- Add your demo screenshot here -->
-<!-- ![IntelliRAG Demo](docs/images/demo.png) -->
-
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/ba25a9c2-07e6-43da-93c8-2bac8dd6f28b" autoplay loop muted playsinline controls></video>
+</div>
 ---
 
 ## ✨ Features
