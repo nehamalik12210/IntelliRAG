@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
 
+    # ── Default LLM ──
     default_llm_provider: str = "groq"
-    default_llm_model: str = "llama-3.1-8b-instant"
+    default_llm_model: str = "openai/gpt-oss-120b"
 
     # ── Embeddings ──
     embedding_provider: str = "local"
