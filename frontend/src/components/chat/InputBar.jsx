@@ -5,9 +5,20 @@ import MultiDocSelect from './MultiDocSelect';
 import { listModels } from '../../services/api';
 
 /**
- * Chat input bar with auto-resizing textarea, KB selector, multi-doc selector, model selector, and send/stop buttons.
+ * Chat input bar with auto-resizing textarea, KB selector,
+ * multi-doc selector, model selector, and send/stop buttons.
  */
-export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, selectedKb, onKbChange, documents, selectedDocIds, onDocumentChange }) {
+export default function InputBar({
+  onSend,
+  isStreaming,
+  onStop,
+  knowledgeBases,
+  selectedKb,
+  onKbChange,
+  documents,
+  selectedDocIds,
+  onDocumentChange
+}) {
   const [text, setText] = useState('');
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
@@ -16,7 +27,8 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+      textareaRef.current.style.height =
+        Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     }
   }, [text]);
 
@@ -25,13 +37,32 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
     listModels()
       .then((data) => {
         setModels(data.models || []);
+
+        // Set backend default model
+        if (data.default_provider && data.default_model) {
+          setSelectedModel(
+            `${data.default_provider}::${data.default_model}`
+          );
+        }
       })
       .catch(() => {});
   }, []);
 
   const handleSend = () => {
     if (!text.trim() || isStreaming) return;
-    const [provider, model] = selectedModel ? selectedModel.split('/') : [null, null];
+
+    let provider = null;
+    let model = null;
+
+    if (selectedModel) {
+      const separatorIndex = selectedModel.indexOf('::');
+
+      if (separatorIndex !== -1) {
+        provider = selectedModel.slice(0, separatorIndex);
+        model = selectedModel.slice(separatorIndex + 2);
+      }
+    }
+
     onSend(text.trim(), provider, model);
     setText('');
   };
@@ -42,6 +73,22 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
       handleSend();
     }
   };
+
+  // Put Groq models first, followed by all other models
+  const sortedModels = [
+    ...models
+      .filter((m) => m.provider === 'groq')
+      .sort((a, b) => {
+        const order = {
+          'openai/gpt-oss-120b': 0,
+          'openai/gpt-oss-20b': 1
+        };
+
+        return (order[a.id] ?? 99) - (order[b.id] ?? 99);
+      }),
+
+    ...models.filter((m) => m.provider !== 'groq')
+  ];
 
   return (
     <div className="chat-input-area">
@@ -56,8 +103,13 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
           rows={1}
           disabled={isStreaming}
         />
+
         {isStreaming ? (
-          <button className="send-btn" onClick={onStop} title="Stop generating">
+          <button
+            className="send-btn"
+            onClick={onStop}
+            title="Stop generating"
+          >
             <Square size={16} />
           </button>
         ) : (
@@ -71,11 +123,23 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
           </button>
         )}
       </div>
+
       <div className="chat-input-meta">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}
+        >
+          {/* Knowledge Base Selector */}
           {knowledgeBases && knowledgeBases.length > 0 ? (
             <CustomSelect
-              options={knowledgeBases.map((kb) => ({ value: kb.id, label: kb.name }))}
+              options={knowledgeBases.map((kb) => ({
+                value: kb.id,
+                label: kb.name
+              }))}
               value={selectedKb || ''}
               onChange={(val) => {
                 onKbChange(val || null);
@@ -86,7 +150,8 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
           ) : (
             <span>No knowledge bases created yet</span>
           )}
-          
+
+          {/* Document Selector */}
           {selectedKb && documents && documents.length > 0 && (
             <MultiDocSelect
               documents={documents}
@@ -94,9 +159,14 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
               onChange={onDocumentChange}
             />
           )}
+
+          {/* Model Selector */}
           {models.length > 0 && (
             <CustomSelect
-              options={models.map((m) => ({ value: `${m.provider}/${m.id}`, label: `${m.name}` }))}
+              options={sortedModels.map((m) => ({
+                value: `${m.provider}::${m.id}`,
+                label: `${m.name}`
+              }))}
               value={selectedModel}
               onChange={setSelectedModel}
               placeholder="Default model"
@@ -104,9 +174,11 @@ export default function InputBar({ onSend, isStreaming, onStop, knowledgeBases, 
             />
           )}
         </div>
-        <span>Press Enter to send, Shift+Enter for new line</span>
+
+        <span>
+          Press Enter to send, Shift+Enter for new line
+        </span>
       </div>
     </div>
   );
 }
-
